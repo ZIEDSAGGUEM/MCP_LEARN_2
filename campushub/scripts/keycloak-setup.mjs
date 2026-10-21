@@ -2,7 +2,7 @@
 // Users' passwords come from .env.test, which this repo never commits (it is PUBLIC).
 const KC = process.env.KEYCLOAK_URL ?? "http://127.0.0.1:8090";
 const REALM = "campus";
-const RESOURCE_URL = process.env.RESOURCE_URL ?? "http://localhost:4000/mcp"; // the future gateway: tokens are made for it
+const RESOURCE_URL = process.env.RESOURCE_URL ?? "http://localhost:4100/mcp"; // the gateway: tokens are made for it (4000 is InsureBot's)
 const adminPassword = process.env.KEYCLOAK_ADMIN_PASSWORD;
 if (!adminPassword) throw new Error("KEYCLOAK_ADMIN_PASSWORD is not set (run scripts/setup.sh)");
 
@@ -66,6 +66,14 @@ await api("POST", `/${REALM}/client-scopes`, {
 });
 const scopes = await api("GET", `/${REALM}/client-scopes`);
 const audienceScope = scopes.find((s) => s.name === "campushub-audience");
+// keep the audience in sync if the scope already existed (for example after changing RESOURCE_URL)
+for (const m of (await api("GET", `/${REALM}/client-scopes/${audienceScope.id}/protocol-mappers/models`)) ?? []) {
+  if (m.protocolMapper === "oidc-audience-mapper" && m.config["included.custom.audience"] !== RESOURCE_URL) {
+    await api("PUT", `/${REALM}/client-scopes/${audienceScope.id}/protocol-mappers/models/${m.id}`, {
+      ...m, config: { ...m.config, "included.custom.audience": RESOURCE_URL },
+    });
+  }
+}
 await api("PUT", `/${REALM}/default-default-client-scopes/${audienceScope.id}`);
 
 // 4. the test client (password grant): lab and tests only. Real clients use browser login with PKCE.

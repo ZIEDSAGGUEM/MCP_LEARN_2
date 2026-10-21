@@ -28,8 +28,8 @@ InsureBot didn't: **resources, prompts, autocomplete, live subscriptions, progre
 ```bash
 cd campushub
 npm install
-npm run setup     # creates random secrets, starts the lab, creates the Keycloak realm and the files
-npm test          # step 00: 18 checks
+npm run setup     # creates random secrets, starts the lab + 2 CampusHub pods, Keycloak realm, files
+npm test          # steps 00–01: 30 checks
 ```
 
 Stop InsureBot first if it runs (8 GB Macs): `docker compose stop` in its folder.
@@ -41,6 +41,9 @@ Stop InsureBot first if it runs (8 GB Macs): `docker compose stop` in its folder
 | Mailpit | http://localhost:8026 | none |
 | Postgres | 127.0.0.1:5434, database `campus` | `postgres` (setup) or `campus_app` (the app) |
 | Redis | 127.0.0.1:6382 | none |
+| **CampusHub MCP** (gateway) | http://127.0.0.1:4100/mcp | Keycloak token (realm `campus`) |
+| LAB: cache that obeys `Cache-Control` | http://127.0.0.1:4103/mcp | same |
+| LAB: broken cache that ignores it | http://127.0.0.1:4104/mcp | same |
 
 Lab users (passwords in `.env.test`): `sara`, `bilal`, `mallory` (students), `tom`, `lina` (teachers).
 
@@ -49,7 +52,8 @@ Lab users (passwords in `.env.test`): `sara`, `bilal`, `mallory` (students), `to
 | Step | What | Status |
 |---|---|---|
 | 00 | Lab, data model, Keycloak realm, MinIO files | ✅ 18 tests |
-| 01 | First resources: public vs private caching | next |
+| 01 | First resources: public vs private caching | ✅ 12 tests |
+| 02 | Resource templates and ownership (C1, C2, C14) | next |
 
 ### What step 00 proves
 
@@ -64,3 +68,22 @@ Lab users (passwords in `.env.test`): `sara`, `bilal`, `mallory` (students), `to
 | Every port listens on 127.0.0.1; `.env` files are ignored and untracked | Nothing exposed, nothing leaked in a public repo |
 
 > This repository is public: secrets live only in `.env` / `.env.test`, which are git-ignored.
+
+### What step 01 proves
+
+Two resources: `campus://catalog` (identical for everyone) and `campus://me/timetable` (depends on the token).
+`src/cachePolicy.ts` is the one place that decides what may be cached; both the MCP `cacheScope` and the HTTP
+`Cache-Control` header come from it, so they can't disagree.
+
+| Check | Result |
+|---|---|
+| Catalog | `cacheScope: "public"`, 1 h, `Cache-Control: public, max-age=3600`; no teacher notes in it |
+| Timetable | Sara 2 courses, Bilal 1, Prof. Tom his CS101; `private, no-store` + `Vary: Authorization` |
+| No token | 401, even for the catalog |
+| Shared cache that obeys headers (:4103) | Catalog: 2nd read is a HIT. Timetable: never a HIT |
+| C3, a cache that ignores headers (:4104) | Bilal receives Sara's timetable: the leak a misconfigured CDN causes |
+| "Public" means public | A cached catalog is served even without a token: the cache never asks the server |
+| No sessions | Reads are answered by both pods |
+
+Mutation check: marking the timetable public makes 2 step 01 tests fail.
+Note: tests run one file at a time, because Keycloak's brute-force protection (kept on) flags simultaneous logins.

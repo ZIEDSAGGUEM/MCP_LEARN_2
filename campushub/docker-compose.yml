@@ -1,7 +1,6 @@
 # CampusHub local lab (step 00).
 # Every port listens on 127.0.0.1 only, on ports that don't clash with InsureBot.
 # Every image is pinned to a version AND a digest. Secrets come from .env (created by scripts/setup.sh).
-# The MCP server and the gateway arrive in step 01.
 
 name: campushub
 
@@ -66,6 +65,36 @@ services:
     ports:
       - "127.0.0.1:8026:8025" # web inbox
       - "127.0.0.1:1026:1025" # SMTP
+
+  campushub:
+    # Step 01: the MCP server. 2 pods behind the gateway: nothing may live in one pod's memory.
+    build: .
+    deploy:
+      replicas: 2
+    environment:
+      HOST: 0.0.0.0
+      PORT: 3000
+      ALLOWED_HOSTS: localhost,127.0.0.1,gateway
+      DATABASE_URL: postgres://campus_app:${CAMPUS_APP_PASSWORD}@postgres:5432/campus
+      OIDC_ISSUER: http://localhost:8090/realms/campus # what tokens say in "iss"
+      OIDC_INTERNAL_URL: http://keycloak:8080/realms/campus # how pods reach Keycloak
+      RESOURCE_URL: http://localhost:4100/mcp # CampusHub's identity: must be in the token's "aud"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      keycloak:
+        condition: service_healthy
+
+  gateway:
+    image: nginx:1.27.5@sha256:6784fb0834aa7dbbe12e3d7471e69c290df3e6ba810dc38b34ae33d3c1c05f7d
+    volumes: ["./gateway/nginx.conf:/etc/nginx/nginx.conf:ro"]
+    ports:
+      - "127.0.0.1:4100:80" # public entrance (4000 is InsureBot's)
+      - "127.0.0.1:4103:82" # LAB: cache that obeys Cache-Control
+      - "127.0.0.1:4104:83" # LAB: broken cache that ignores it (shows C3)
+    depends_on:
+      campushub:
+        condition: service_healthy
 
 volumes:
   pgdata:
