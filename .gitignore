@@ -1,0 +1,11 @@
+# Secrets: this repository is PUBLIC
+.env
+.env.test
+*.pem
+keycloak/*-realm.json
+# Build output
+node_modules
+dist
+.next
+*.tsbuildinfo
+.DS_Store
