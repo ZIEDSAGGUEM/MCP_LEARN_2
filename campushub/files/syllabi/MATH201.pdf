@@ -1,0 +1,57 @@
+%PDF-1.4
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R >>
+endobj
+2 0 obj
+<< /Type /Pages /Kids [3 0 R] /Count 1 >>
+endobj
+3 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Contents 4 0 R /Resources << /Font << /F1 5 0 R >> >> >>
+endobj
+4 0 obj
+<< /Length 470 >>
+stream
+BT
+/F1 18 Tf
+0 0 0 rg
+1 0 0 1 56 760 Tm
+(MATH201 - Linear Algebra) Tj
+/F1 12 Tf
+0 0 0 rg
+1 0 0 1 56 734 Tm
+(Teacher: Prof. Lina Saidi) Tj
+/F1 12 Tf
+0 0 0 rg
+1 0 0 1 56 714 Tm
+(Weeks 1-4: vectors and matrices) Tj
+/F1 12 Tf
+0 0 0 rg
+1 0 0 1 56 694 Tm
+(Weeks 5-8: determinants and inverses) Tj
+/F1 12 Tf
+0 0 0 rg
+1 0 0 1 56 674 Tm
+(Weeks 9-12: eigenvalues and eigenvectors) Tj
+/F1 12 Tf
+0 0 0 rg
+1 0 0 1 56 654 Tm
+(Exam: written, 3 hours. Problem sets 40%, exam 60%.) Tj
+ET
+endstream
+endobj
+5 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>
+endobj
+xref
+0 6
+0000000000 65535 f 
+0000000009 00000 n 
+0000000058 00000 n 
+0000000115 00000 n 
+0000000241 00000 n 
+0000000762 00000 n 
+trailer
+<< /Size 6 /Root 1 0 R >>
+startxref
+859
+%%EOF

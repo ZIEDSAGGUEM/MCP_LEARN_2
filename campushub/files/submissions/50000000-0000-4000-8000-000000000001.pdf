@@ -1,0 +1,49 @@
+%PDF-1.4
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R >>
+endobj
+2 0 obj
+<< /Type /Pages /Kids [3 0 R] /Count 1 >>
+endobj
+3 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Contents 4 0 R /Resources << /Font << /F1 5 0 R >> >> >>
+endobj
+4 0 obj
+<< /Length 427 >>
+stream
+BT
+/F1 16 Tf
+0 0 0 rg
+1 0 0 1 56 760 Tm
+(Why recursion matters - Sara Ben Ali) Tj
+/F1 12 Tf
+0 0 0 rg
+1 0 0 1 56 736 Tm
+(Recursion lets a function solve a problem by solving smaller copies of it.) Tj
+/F1 12 Tf
+0 0 0 rg
+1 0 0 1 56 716 Tm
+(Example: a folder's size is its files plus the size of each sub-folder.) Tj
+/F1 12 Tf
+0 0 0 rg
+1 0 0 1 56 696 Tm
+(The base case stops the recursion; without it the program never ends.) Tj
+ET
+endstream
+endobj
+5 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>
+endobj
+xref
+0 6
+0000000000 65535 f 
+0000000009 00000 n 
+0000000058 00000 n 
+0000000115 00000 n 
+0000000241 00000 n 
+0000000719 00000 n 
+trailer
+<< /Size 6 /Root 1 0 R >>
+startxref
+816
+%%EOF

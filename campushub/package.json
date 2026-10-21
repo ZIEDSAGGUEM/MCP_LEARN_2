@@ -1,0 +1,25 @@
+{
+  "name": "campushub",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "description": "University MCP server for learning resources, prompts, subscriptions and long jobs (MCP 2026-07-28)",
+  "scripts": {
+    "setup": "bash scripts/setup.sh",
+    "test": "vitest run"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.5",
+    "@types/pg": "^8.23.1",
+    "tsx": "^4.23.15",
+    "typescript": "^7.0.2",
+    "vitest": "^5.0.5"
+  },
+  "dependencies": {
+    "minio": "^8.0.7",
+    "pg": "^8.23.1"
+  }
+}
