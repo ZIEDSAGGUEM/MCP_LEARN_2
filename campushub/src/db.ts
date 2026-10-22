@@ -13,3 +13,23 @@ export async function campusUser(who: Principal): Promise<CampusUser> {
   if (!rows[0]) throw new Error("This account isn't a CampusHub user");
   return rows[0];
 }
+
+/**
+ * Run queries AS this campus user: Postgres row-level security (db/005_rls.sql) then filters every row.
+ * set_config(..., true) = SET LOCAL: erased at COMMIT, so a pooled connection never keeps the user.
+ */
+export async function withUser<T>(user: CampusUser, fn: (db: pg.PoolClient) => Promise<T>): Promise<T> {
+  const db = await pool.connect();
+  try {
+    await db.query("BEGIN");
+    await db.query("SELECT set_config('app.user_id', $1, true)", [user.id]);
+    const out = await fn(db);
+    await db.query("COMMIT");
+    return out;
+  } catch (e) {
+    await db.query("ROLLBACK");
+    throw e;
+  } finally {
+    db.release();
+  }
+}

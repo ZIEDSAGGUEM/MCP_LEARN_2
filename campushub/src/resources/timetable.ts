@@ -1,7 +1,7 @@
 import type { McpServer } from "@modelcontextprotocol/server";
 import { principal } from "../auth.js";
 import { hintFor } from "../cachePolicy.js";
-import { campusUser, pool } from "../db.js";
+import { campusUser, withUser } from "../db.js";
 
 const URI = "campus://me/timetable";
 
@@ -22,7 +22,8 @@ export function registerTimetable(server: McpServer) {
         me.role === "teacher"
           ? "SELECT c.code, c.title, c.schedule FROM teaches t JOIN courses c ON c.code = t.course_code WHERE t.teacher_id = $1 ORDER BY c.code"
           : "SELECT c.code, c.title, c.schedule FROM enrollments e JOIN courses c ON c.code = e.course_code WHERE e.student_id = $1 ORDER BY c.code";
-      const { rows } = await pool.query(sql, [me.id]);
+      // enrollments has row-level security since step 02: query as the caller
+      const { rows } = await withUser(me, (db) => db.query(sql, [me.id]));
       return {
         contents: [{ uri: uri.href, mimeType: "application/json", text: JSON.stringify({ for: me.name, role: me.role, courses: rows }) }],
       };

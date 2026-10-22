@@ -13,7 +13,8 @@ const read = (user: Parameters<typeof token>[0], uri: string, url?: string, run?
 describe("Step 01: resources exist and need a token", () => {
   test("resources/list shows the catalog and my timetable, and the list itself is private", async () => {
     const r = await mcp(await token("sara"), "resources/list");
-    expect(r.body.result.resources.map((x: { uri: string }) => x.uri).sort()).toEqual([CATALOG, TIMETABLE]);
+    // (step 02 adds more entries to the list; here we only care that these two are there)
+    expect(r.body.result.resources.map((x: { uri: string }) => x.uri)).toEqual(expect.arrayContaining([CATALOG, TIMETABLE]));
     expect(r.body.result.cacheScope).toBe("private");
   });
 

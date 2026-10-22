@@ -29,7 +29,7 @@ InsureBot didn't: **resources, prompts, autocomplete, live subscriptions, progre
 cd campushub
 npm install
 npm run setup     # creates random secrets, starts the lab + 2 CampusHub pods, Keycloak realm, files
-npm test          # steps 00–01: 30 checks
+npm test          # steps 00–02: 46 checks
 ```
 
 Stop InsureBot first if it runs (8 GB Macs): `docker compose stop` in its folder.
@@ -53,7 +53,8 @@ Lab users (passwords in `.env.test`): `sara`, `bilal`, `mallory` (students), `to
 |---|---|---|
 | 00 | Lab, data model, Keycloak realm, MinIO files | ✅ 18 tests |
 | 01 | First resources: public vs private caching | ✅ 12 tests |
-| 02 | Resource templates and ownership (C1, C2, C14) | next |
+| 02 | Resource templates and ownership (C1, C2, C14) | ✅ 16 tests |
+| 03 | Autocomplete without leaking names (C4) | next |
 
 ### What step 00 proves
 
@@ -87,3 +88,30 @@ Two resources: `campus://catalog` (identical for everyone) and `campus://me/time
 
 Mutation check: marking the timetable public makes 2 step 01 tests fail.
 Note: tests run one file at a time, because Keycloak's brute-force protection (kept on) flags simultaneous logins.
+
+### What step 02 proves
+
+Two templates where the client writes a name into the address: `campus://students/{student}/grades` and
+`campus://courses/{course}/syllabus` (the PDF, read from MinIO). The address says *what*; the token says *who*.
+
+**Two walls.** Wall 1 is the code (`src/access.ts`): check the caller may see that student or course *before* reading.
+Wall 2 is Postgres row-level security (`db/005_rls.sql`): every query runs *as* the caller, and the database hides
+other rows by itself, including draft grades from students.
+
+| Attack / check | Result |
+|---|---|
+| C1: Sara reads `…/students/bilal/grades` | "Resource not found", identical to a name that doesn't exist |
+| Sara reads her own grades | Only **published** ones (her MATH201 grade is a draft) |
+| Prof. Tom reads Sara's grades | CS101 only; Prof. Lina sees her MATH201 draft |
+| Odd names (`../`, uppercase, SQL) | Refused before any query |
+| Bilal / Prof. Tom read the MATH201 syllabus | Not found (not enrolled / not his course) |
+| C2: `resources/list` | Only what the caller may read (Tom: his 3 CS101 students) |
+| C14: following a link to Bilal's grades | Same check, not found |
+| RLS with no user set | 0 rows everywhere (fails closed) |
+| Lina writes a CS101 grade directly in the database | Refused by row-level security |
+
+**Each wall alone stops C1** (mutation checks): with wall 1 broken, Sara gets an empty list and 4 tests turn red;
+with wall 2 broken, Sara still gets "not found" and 3 tests turn red (including a draft-grade leak).
+
+Files: the app reads PDFs with its **own MinIO user** (`scripts/minio-app-user.sh`): read syllabi and submissions,
+write submissions only; it can't delete or list other buckets.

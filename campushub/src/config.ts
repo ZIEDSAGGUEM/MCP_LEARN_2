@@ -16,4 +16,9 @@ export const config = {
   oidcInternalUrl: process.env.OIDC_INTERNAL_URL ?? required("OIDC_ISSUER"),
   resourceUrl: required("RESOURCE_URL"),
   podName: process.env.POD_NAME ?? hostname(),
+  // Files (MinIO). The app's own keys: read syllabi + submissions, write submissions, nothing else
+  s3Endpoint: required("S3_ENDPOINT"),
+  s3AccessKey: required("S3_ACCESS_KEY"),
+  s3SecretKey: required("S3_SECRET_KEY"),
+  s3Bucket: process.env.S3_BUCKET ?? "campus",
 };

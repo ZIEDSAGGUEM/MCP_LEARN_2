@@ -4,7 +4,7 @@ import { readFileSync } from "node:fs";
 import { Client as Minio } from "minio";
 import type pg from "pg";
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
-import { asApp, claims, ISSUER, refused, RESOURCE_URL, tokenFor, type LabUser } from "./helpers.js";
+import { asAdmin, asApp, claims, ISSUER, refused, RESOURCE_URL, tokenFor, type LabUser } from "./helpers.js";
 
 describe("Step 00: identities (Keycloak realm campus)", () => {
   const roles: [LabUser, string][] = [["sara", "student"], ["bilal", "student"], ["mallory", "student"], ["tom", "teacher"], ["lina", "teacher"]];
@@ -28,9 +28,10 @@ describe("Step 00: identities (Keycloak realm campus)", () => {
 });
 
 describe("Step 00: the university data", () => {
+  // Looked at as the administrator: since step 02, the app role only sees rows for the user it acts for
   let db: pg.Client;
   beforeAll(async () => {
-    db = asApp();
+    db = asAdmin();
     await db.connect();
   });
   afterAll(async () => db?.end());
@@ -87,12 +88,19 @@ describe("Step 00: the app role has the least it needs", () => {
   });
 
   test("the schema itself refuses bad data (defence before any code)", async () => {
+    // act as Sara, who may submit to CS101: row-level security lets the insert through, so the CHECK rules are reached
+    await db.query("BEGIN");
+    await db.query("SELECT set_config('app.user_id', 'sara', false)");
     const insert = "INSERT INTO submissions (assignment_id, student_id, object_key, size_bytes, mime_type) VALUES ($1, 'sara', $2, $3, $4)";
     const a = "a0000000-0000-4000-8000-000000000002";
     expect(await refused(db, insert, [a, "submissions/../../etc/passwd", 100, "application/pdf"])).toMatch(/check constraint/);
     expect(await refused(db, insert, [a, "submissions/00000000-0000-4000-8000-0000000000ff.pdf", 50_000_000, "application/pdf"])).toMatch(/check constraint/);
     expect(await refused(db, insert, [a, "submissions/00000000-0000-4000-8000-0000000000fe.pdf", 100, "text/html"])).toMatch(/check constraint/);
+    await db.query("ROLLBACK");
+    // a teacher's update of a CS101 grade passes row-level security, then hits the 0–20 CHECK rule
+    await db.query("SELECT set_config('app.user_id', 'tom', false)");
     expect(await refused(db, "UPDATE grades SET score = 25 WHERE submission_id = '50000000-0000-4000-8000-000000000001'")).toMatch(/check constraint/);
+    await db.query("SELECT set_config('app.user_id', '', false)");
   });
 });
 

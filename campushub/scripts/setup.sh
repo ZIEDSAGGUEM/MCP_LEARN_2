@@ -31,6 +31,10 @@ if [ ! -f .env.test ]; then
   chmod 600 .env.test
   echo "created .env.test"
 fi
+# Keys added in later steps: append any that are missing (never overwrite existing secrets)
+ensure() { grep -q "^$1=" .env || echo "$1=$2" >> .env; }
+ensure MINIO_APP_ACCESS_KEY "campus-app-$(rand 6)"
+ensure MINIO_APP_SECRET_KEY "$(rand)"
 set -a; source .env; source .env.test; set +a
 
 node scripts/make-pdfs.mjs
@@ -54,6 +58,7 @@ echo "$SQL" | docker compose exec -T postgres psql -q -v ON_ERROR_STOP=1 -U post
 echo "postgres linked to keycloak users"
 
 node scripts/minio-setup.mjs
+bash scripts/minio-app-user.sh
 
 cat <<EOF
 

@@ -7,18 +7,22 @@ import { cacheControlFor } from "./cachePolicy.js";
 import { config } from "./config.js";
 import { pool } from "./db.js";
 import { registerCatalog } from "./resources/catalog.js";
+import { registerGrades } from "./resources/grades.js";
+import { registerSyllabus } from "./resources/syllabus.js";
 import { registerTimetable } from "./resources/timetable.js";
 
 // A fresh McpServer per request: nothing is kept in a pod's memory (stateless, like InsureBot)
 const handler = createMcpHandler(
   () => {
     const server = new McpServer(
-      { name: "campushub", version: "0.1.0" },
+      { name: "campushub", version: "0.2.0" },
       // The resource LIST will depend on who asks from step 02, so it's private from the start
       { cacheHints: { "resources/list": { cacheScope: "private", ttlMs: 0 } } },
     );
     registerCatalog(server);
     registerTimetable(server);
+    registerGrades(server);
+    registerSyllabus(server);
     return server;
   },
   { legacy: "reject", onerror: (err) => console.error("mcp error:", err.message) },
