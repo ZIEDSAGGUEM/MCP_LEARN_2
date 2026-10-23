@@ -29,7 +29,7 @@ InsureBot didn't: **resources, prompts, autocomplete, live subscriptions, progre
 cd campushub
 npm install
 npm run setup     # creates random secrets, starts the lab + 2 CampusHub pods, Keycloak realm, files
-npm test          # steps 00–02: 46 checks
+npm test          # steps 00–03: 58 checks
 ```
 
 Stop InsureBot first if it runs (8 GB Macs): `docker compose stop` in its folder.
@@ -54,7 +54,8 @@ Lab users (passwords in `.env.test`): `sara`, `bilal`, `mallory` (students), `to
 | 00 | Lab, data model, Keycloak realm, MinIO files | ✅ 18 tests |
 | 01 | First resources: public vs private caching | ✅ 12 tests |
 | 02 | Resource templates and ownership (C1, C2, C14) | ✅ 16 tests |
-| 03 | Autocomplete without leaking names (C4) | next |
+| 03 | Autocomplete without leaking names (C4) | ✅ 12 tests |
+| 04 | Prompts: templates the user picks (C5) | next |
 
 ### What step 00 proves
 
@@ -115,3 +116,25 @@ with wall 2 broken, Sara still gets "not found" and 3 tests turn red (including 
 
 Files: the app reads PDFs with its **own MinIO user** (`scripts/minio-app-user.sh`): read syllabi and submissions,
 write submissions only; it can't delete or list other buckets.
+
+### What step 03 proves
+
+`completion/complete` suggests values for the templates' blanks (`{student}`, `{course}`).
+
+**The trap:** in the SDK, a template's completion callback receives only the typed text, never the caller. Written the
+obvious way (`SELECT id FROM users WHERE id LIKE typed%`), it suggests every student to anyone. CampusHub builds a fresh
+server per request, and that factory receives the verified token, so each request's callback is bound to its caller
+(`registerGrades(server, authInfo)`), and the query runs as the caller under row-level security.
+
+| Who | Types | Suggested |
+|---|---|---|
+| Sara | `B` | nothing (C4: she can't learn that Bilal exists) |
+| Sara | empty | only `sara` |
+| Prof. Tom | `Bi` / empty | `bilal` / his 3 CS101 students |
+| Prof. Lina | empty / `b` | `sara` / nothing |
+| Prof. Tom | `%` or `_` | nothing: plain characters, not wildcards |
+| Bilal | course `M` | nothing (MATH201 isn't his) |
+| A script | 130 requests in seconds | `429` + `Retry-After` (60/min per user, in Redis, shared by both pods) |
+
+Every suggestion is readable by the caller (a suggestion is never a key). Mutation check: the naive callback makes
+Sara's "B" return `bilal` and 5 step 03 tests fail.

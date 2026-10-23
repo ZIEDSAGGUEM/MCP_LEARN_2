@@ -1,15 +1,21 @@
-import { ResourceNotFoundError, ResourceTemplate, type McpServer } from "@modelcontextprotocol/server";
-import { canSeeCourse } from "../access.js";
+import { ResourceNotFoundError, ResourceTemplate, type AuthInfo, type McpServer } from "@modelcontextprotocol/server";
+import { canSeeCourse, suggestCourses } from "../access.js";
 import { principal } from "../auth.js";
 import { hintFor } from "../cachePolicy.js";
 import { campusUser, withUser } from "../db.js";
 import { readFile } from "../files.js";
 
 /** campus://courses/{course}/syllabus: the course PDF, for its students and teachers only. */
-export function registerSyllabus(server: McpServer) {
+export function registerSyllabus(server: McpServer, authInfo: AuthInfo | undefined) {
   server.registerResource(
     "syllabus",
     new ResourceTemplate("campus://courses/{course}/syllabus", {
+      complete: {
+        course: async (typed) => {
+          const me = await campusUser(principal(authInfo));
+          return withUser(me, (db) => suggestCourses(db, me, typed));
+        },
+      },
       list: async (ctx) => {
         const me = await campusUser(principal(ctx.http?.authInfo));
         const sql =

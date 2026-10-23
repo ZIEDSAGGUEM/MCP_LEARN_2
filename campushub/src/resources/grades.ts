@@ -1,5 +1,5 @@
-import { ResourceNotFoundError, ResourceTemplate, type McpServer } from "@modelcontextprotocol/server";
-import { canSeeStudent } from "../access.js";
+import { ResourceNotFoundError, ResourceTemplate, type AuthInfo, type McpServer } from "@modelcontextprotocol/server";
+import { canSeeStudent, suggestStudents } from "../access.js";
 import { principal } from "../auth.js";
 import { hintFor } from "../cachePolicy.js";
 import { campusUser, withUser } from "../db.js";
@@ -10,10 +10,18 @@ const PREFIX = "campus://students/";
  * campus://students/{student}/grades: the client fills in {student}, so the client chooses the name.
  * The address says WHAT is wanted; the token says WHO asks; this checks they match. (Attack C1)
  */
-export function registerGrades(server: McpServer) {
+export function registerGrades(server: McpServer, authInfo: AuthInfo | undefined) {
   server.registerResource(
     "grades",
     new ResourceTemplate(`${PREFIX}{student}/grades`, {
+      // Autocomplete for {student} (attack C4). The SDK's callback receives only the typed text, never the caller,
+      // so it's bound here to THIS request's verified token: the server is built fresh for every request.
+      complete: {
+        student: async (typed) => {
+          const me = await campusUser(principal(authInfo));
+          return withUser(me, (db) => suggestStudents(db, me, typed));
+        },
+      },
       // resources/list: ONLY the grade sheets the caller may read (attack C2)
       list: async (ctx) => {
         const me = await campusUser(principal(ctx.http?.authInfo));

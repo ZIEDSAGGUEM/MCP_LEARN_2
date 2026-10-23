@@ -21,4 +21,7 @@ export const config = {
   s3AccessKey: required("S3_ACCESS_KEY"),
   s3SecretKey: required("S3_SECRET_KEY"),
   s3Bucket: process.env.S3_BUCKET ?? "campus",
+  redisUrl: required("REDIS_URL"),
+  // Autocomplete is a search box: cap how fast one user can probe it (attack C4: guessing names letter by letter)
+  completionsPerMinute: Number(process.env.COMPLETIONS_PER_MINUTE ?? 60),
 };
